@@ -2,6 +2,7 @@ package com.zilaidawwab.fintechapp.service.impl;
 
 import com.zilaidawwab.fintechapp.dto.AccountInfo;
 import com.zilaidawwab.fintechapp.dto.BankResponse;
+import com.zilaidawwab.fintechapp.dto.EmailDetails;
 import com.zilaidawwab.fintechapp.dto.UserRequest;
 import com.zilaidawwab.fintechapp.entity.User;
 import com.zilaidawwab.fintechapp.repository.UserRepository;
@@ -19,6 +20,9 @@ public class UserServiceImpl implements UserService {
     // existence of the user in the DB
     @Autowired
     UserRepository userRepository;
+
+    @Autowired
+    EmailService emailService;
 
     @Override
     public BankResponse createAccount(UserRequest userRequest) {
@@ -49,6 +53,16 @@ public class UserServiceImpl implements UserService {
                 .build();
 
         User savedUser = userRepository.save(newUser);
+
+        // send email alert
+        EmailDetails emailDetails = EmailDetails.builder()
+                .recipient(savedUser.getEmail())
+                .subject("Account Creation")
+                .messageBody("Congratulations! Your Account has been successfully created.\nYour Account Details: \n " +
+                        "Account Name: " + savedUser.getFirstName() + " " + savedUser.getLastName() + " " + savedUser.getOtherName() + "\n" +
+                        "Account Number: " + savedUser.getAccountNumber())
+                .build();
+        emailService.sendEmailAlert(emailDetails);
 
         return BankResponse.builder()
                 .responseCode(AccountUtils.ACCOUNT_CREATION_SUCCESS)
