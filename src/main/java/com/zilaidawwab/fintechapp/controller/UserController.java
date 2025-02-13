@@ -1,6 +1,7 @@
 package com.zilaidawwab.fintechapp.controller;
 
 import com.zilaidawwab.fintechapp.dto.BankResponse;
+import com.zilaidawwab.fintechapp.dto.CreditDebitRequest;
 import com.zilaidawwab.fintechapp.dto.EnquiryRequest;
 import com.zilaidawwab.fintechapp.dto.UserRequest;
 import com.zilaidawwab.fintechapp.service.impl.UserService;
@@ -28,5 +29,10 @@ public class UserController {
     @GetMapping("/nameEnquiry")
     public String nameEnquiry(@RequestBody EnquiryRequest enquiryRequest) {
         return userService.nameEnquiry(enquiryRequest);
+    }
+
+    @PostMapping("/credit")
+    public BankResponse creditAccount(@RequestBody CreditDebitRequest creditDebitRequest) {
+        return userService.creditAccount(creditDebitRequest);
     }
 }
