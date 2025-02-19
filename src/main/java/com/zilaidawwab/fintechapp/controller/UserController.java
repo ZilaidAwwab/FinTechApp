@@ -1,9 +1,6 @@
 package com.zilaidawwab.fintechapp.controller;
 
-import com.zilaidawwab.fintechapp.dto.BankResponse;
-import com.zilaidawwab.fintechapp.dto.CreditDebitRequest;
-import com.zilaidawwab.fintechapp.dto.EnquiryRequest;
-import com.zilaidawwab.fintechapp.dto.UserRequest;
+import com.zilaidawwab.fintechapp.dto.*;
 import com.zilaidawwab.fintechapp.service.impl.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -39,5 +36,10 @@ public class UserController {
     @PostMapping("/debit")
     public BankResponse debitAccount(@RequestBody CreditDebitRequest creditDebitRequest) {
         return userService.debitAccount(creditDebitRequest);
+    }
+
+    @PostMapping("transfer")
+    public BankResponse transfer(@RequestBody TransferRequest transferRequest) {
+        return userService.transfer(transferRequest);
     }
 }

@@ -56,7 +56,7 @@ public class UserServiceImpl implements UserService {
         EmailDetails emailDetails = EmailDetails.builder()
                 .recipient(savedUser.getEmail())
                 .subject("Account Creation")
-                .messageBody("Congratulations! Your Account has been successfully created.\nYour Account Details: \n " +
+                .messageBody("Congratulations! Your Account has been successfully created.\nYour Account Details: \n" +
                         "Account Name: " + savedUser.getFirstName() + " " + savedUser.getLastName() + " " + savedUser.getOtherName() + "\n" +
                         "Account Number: " + savedUser.getAccountNumber())
                 .build();
@@ -169,6 +169,64 @@ public class UserServiceImpl implements UserService {
                             .build())
                     .build();
         }
+    }
 
+    @Override
+    public BankResponse transfer(TransferRequest transferRequest) {
+        // get the account debit (check if it exists)
+        boolean isDestinationAccountExists = userRepository.existsByAccountNumber(transferRequest.getDestinationAccountNumber());
+        if (!isDestinationAccountExists) {
+                return BankResponse.builder()
+                        .responseCode(AccountUtils.ACCOUNT_NOT_EXIST_CODE)
+                        .responseMessage(AccountUtils.ACCOUNT_NOT_EXIST_MESSAGE)
+                        .accountInfo(null)
+                        .build();
+            }
+        
+        // check the amount debited is not more than the current balance
+        User sourceAccountUser = userRepository.findByAccountNumber(transferRequest.getSourceAccountNumber());
+        if (transferRequest.getAmount().compareTo(sourceAccountUser.getAccountBalance()) > 0) {
+            return BankResponse.builder()
+                    .responseCode(AccountUtils.INSUFFICIENT_ACCOUNT_BALANCE)
+                    .responseMessage(AccountUtils.INSUFFICIENT_ACCOUNT_BALANCE_MESSAGE)
+                    .accountInfo(null)
+                    .build();
+        }
+
+        // debit the account
+        sourceAccountUser.setAccountBalance(sourceAccountUser.getAccountBalance().subtract(transferRequest.getAmount()));
+        String sourceUsername = sourceAccountUser.getFirstName() + " " + sourceAccountUser.getLastName() + " " + sourceAccountUser.getOtherName();
+        userRepository.save(sourceAccountUser);
+
+        // sending email to the user whose account has been debited
+        EmailDetails debitAlert = EmailDetails.builder()
+                .subject("Account Debit Alert")
+                .recipient(sourceAccountUser.getEmail())
+                .messageBody("The sum of " + transferRequest.getAmount() + " has been deducted from your account. Your current account balance is " + sourceAccountUser.getAccountBalance())
+                .attachment(null)
+                .build();
+        emailService.sendEmailAlert(debitAlert);
+
+        // get the account to credit
+        User destinationAccountUser = userRepository.findByAccountNumber(transferRequest.getDestinationAccountNumber());
+
+        // credit the account
+        destinationAccountUser.setAccountBalance(destinationAccountUser.getAccountBalance().add(transferRequest.getAmount()));
+        userRepository.save(destinationAccountUser);
+
+        // sending email to the user whose account has been credited
+        EmailDetails creditAlert = EmailDetails.builder()
+                .subject("Account Credit Alert")
+                .recipient(destinationAccountUser.getEmail())
+                .messageBody("The sum of " + transferRequest.getAmount() + " has been sent to your account from " + sourceUsername + ". Your current account balance is " + destinationAccountUser.getAccountBalance())
+                .attachment(null)
+                .build();
+        emailService.sendEmailAlert(creditAlert);
+
+        return BankResponse.builder()
+                .responseCode(AccountUtils.TRANSFER_SUCCESSFUL_CODE)
+                .responseMessage(AccountUtils.TRANSFER_SUCCESSFUL_CODE_MESSAGE)
+                .accountInfo(null)
+                .build();
     }
 }
