@@ -32,6 +32,19 @@ public class UserController {
     }
 
     @Operation(
+            summary = "Login into User Account",
+            description = "Login to the User Account using email and password"
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Http Status 200 OK"
+    )
+    @PostMapping("/login")
+    public BankResponse login(@RequestBody LoginDto loginDto) {
+        return userService.login(loginDto);
+    }
+
+    @Operation(
             summary = "Performs Account Balance Enquiry",
             description = "Given an account number, it returns the balance of the user account"
     )

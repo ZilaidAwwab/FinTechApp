@@ -1,10 +1,16 @@
 package com.zilaidawwab.fintechapp.service.impl;
 
+import com.zilaidawwab.fintechapp.config.JwtTokenProvider;
 import com.zilaidawwab.fintechapp.dto.*;
+import com.zilaidawwab.fintechapp.entity.Role;
 import com.zilaidawwab.fintechapp.entity.User;
 import com.zilaidawwab.fintechapp.repository.UserRepository;
 import com.zilaidawwab.fintechapp.utils.AccountUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -24,6 +30,15 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     TransactionService transactionService;
+
+    @Autowired
+    PasswordEncoder passwordEncoder;
+
+    @Autowired
+    AuthenticationManager authenticationManager;
+
+    @Autowired
+    JwtTokenProvider jwtTokenProvider;
 
     @Override
     public BankResponse createAccount(UserRequest userRequest) {
@@ -48,9 +63,11 @@ public class UserServiceImpl implements UserService {
                 .accountNumber(AccountUtils.generateAccountNumber())
                 .accountBalance(BigDecimal.ZERO)
                 .email(userRequest.getEmail())
+                .password(passwordEncoder.encode(userRequest.getPassword()))
                 .phoneNumber(userRequest.getPhoneNumber())
                 .alternativePhoneNumber(userRequest.getAlternativePhoneNumber())
                 .status("ACTIVE")
+                .role(Role.valueOf("ROLE_USER"))
                 .build();
 
         User savedUser = userRepository.save(newUser);
@@ -73,6 +90,25 @@ public class UserServiceImpl implements UserService {
                         .accountNumber(savedUser.getAccountNumber())
                         .accountName(savedUser.getFirstName() + " " + savedUser.getLastName() + " " + savedUser.getOtherName())
                         .build())
+                .build();
+    }
+
+    public BankResponse login(LoginDto loginDto) {
+        Authentication authentication;
+        authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(loginDto.getEmail(), loginDto.getPassword())
+        );
+
+        EmailDetails loginAlert = EmailDetails.builder()
+                .subject("You're logged in")
+                .recipient(loginDto.getEmail())
+                .messageBody("You logged in to your account. If you didn't initiated the request, please contact the bank support.")
+                .build();
+        emailService.sendEmailAlert(loginAlert);
+
+        return BankResponse.builder()
+                .responseCode("Login Success")
+                .responseMessage(jwtTokenProvider.generateToken(authentication))
                 .build();
     }
 
